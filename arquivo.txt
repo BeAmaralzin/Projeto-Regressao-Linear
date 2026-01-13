@@ -1,6 +1,0 @@
-Pandas
-openpyxl
-statsmodels.api
-scikit-learn
-numpy
-python-dateutil
