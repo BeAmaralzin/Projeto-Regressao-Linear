@@ -20,3 +20,12 @@ print(f'total de linhas carregadas: {len(df_total)}')
 
 df_total.columns = df_total.columns.astype(str).str.strip()
 
+df_total =  df_total.iloc[:, :2]
+df_total.columns = ['DATA', 'QNT']
+
+df_total['DATA'] = pd.to_datetime(df_total['DATA'], dayfirst=True, errors='coerce')
+df_total = df_total.dropna(subset=['DATA', 'QNT'])
+
+df_menssal = df_total.set_index('DATA').resample('MS')['QNT'].sum()
+
+
