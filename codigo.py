@@ -60,5 +60,32 @@ df_total = df_total.dropna(subset=['DATA', 'QNT'])
 print(f'Linhas após limpeza: {len(df_total)}')
 print(f'Período: {df_total["DATA"].min()} a {df_total["DATA"].max()}')
 
-data_hoje = datetime.today().date()
-print(f'Data de hoje: {data_hoje}')
+# Formato personalizado
+data_formatada = datetime.now().strftime('%m/%Y')
+print(f'Data formatada: {data_formatada}')
+
+# Prepara dados para o modelo sarima
+
+df = df_total.set_index('DATA')
+y = df['QNT']
+
+#SAZONALIDADE
+
+try:
+    model=sm.tsa.statespace.SARIMAX(
+        y,
+        order=(1,1,1),
+        seasonal_order=(1,1,1,12),
+        enforce_stationarity=False,
+        enforce_invertibility=False
+    )
+    
+    results = model.fit(disp=False)
+    
+    print('Modelo trinado com sucesso')
+except Exception as e:
+    print('erro ao treinar oo modelo SARIMA')
+    print('verifique que a dados suficientes para analise')
+    sys.exit()
+
+
