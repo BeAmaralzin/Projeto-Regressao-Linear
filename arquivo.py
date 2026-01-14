@@ -5,12 +5,19 @@ import openpyxl
 import sys
 import statsmodels.api as sm
 from datetime import datetime
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+import matplotlib.pyplot as plt
 
-# Carregar os dados e  mesclar as planilhas
+arquivo24 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2024.xlsx"
+arquivo25 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2025.xlsx"
+aba_dados_limpos = 'dados_para_analise'
+
+# Carregar os dados e mesclar as planilhas
 
 try:
-    df_24 = pd.read_excel(r'"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2024.xlsx"')
-    df_25 = pd.read_excel(r'"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2025.xlsx"')
+    df_24 = pd.read_excel(arquivo24,sheet_name=aba_dados_limpos)
+    df_25 = pd.read_excel(arquivo25,sheet_name=aba_dados_limpos)
 except Exception as e:
     print(f'erro ao ler os arquivos de dados: {e}')
     sys.exit()
@@ -20,12 +27,57 @@ print(f'total de linhas carregadas: {len(df_total)}')
 
 df_total.columns = df_total.columns.astype(str).str.strip()
 
-df_total =  df_total.iloc[:, :2]
+df_total = df_total.iloc[:,[0,1]]
 df_total.columns = ['DATA', 'QNT']
 
 df_total['DATA'] = pd.to_datetime(df_total['DATA'], dayfirst=True, errors='coerce')
 df_total = df_total.dropna(subset=['DATA', 'QNT'])
 
-df_menssal = df_total.set_index('DATA').resample('MS')['QNT'].sum()
+# Agregar múltiplas observações no mesmo dia
+df_total = df_total.sort_values('DATA')
+df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
 
+# Criar série temporal com índice de data
+ts = df_total.set_index('DATA')['QNT']
+ts = ts.asfreq('D', fill_value=0)  # Define frequência diária, preenche gaps com 0
 
+print(f'Série temporal: {len(ts)} observações')
+print(f'Período: {ts.index.min()} a {ts.index.max()}')
+
+# Análise visual e estatística
+fig, axes = plt.subplots(3, 1, figsize=(12, 8))
+
+# Série original
+axes[0].plot(ts)
+axes[0].set_title('Série Temporal - Quantidade de Pedidos')
+axes[0].set_ylabel('Quantidade')
+axes[0].grid(True)
+
+# ACF
+plot_acf(ts, lags=40, ax=axes[1])
+axes[1].set_title('ACF - Autocorrelação')
+
+# PACF
+plot_pacf(ts, lags=40, ax=axes[2])
+axes[2].set_title('PACF - Autocorrelação Parcial')
+
+plt.tight_layout()
+plt.savefig(r'C:\Users\izabe\Desktop\Projeto Bernardo\analise_acf_pacf.png')
+plt.show()
+
+# Ajustar modelo SARIMA
+# Parâmetros: (p,d,q)(P,D,Q,s) - ajuste conforme necessário
+try:
+    model = SARIMAX(ts, order=(1,1,1), seasonal_order=(1,1,1,7))
+    results = model.fit(disp=False)
+    print(results.summary())
+    
+    # Fazer previsões para os próximos 30 dias
+    forecast = results.get_forecast(steps=30)
+    forecast_df = forecast.conf_int()
+    forecast_df['forecast'] = forecast.predicted_mean
+    print("\nPrevisão para os próximos 30 dias:")
+    print(forecast_df)
+    
+except Exception as e:
+    print(f'Erro ao ajustar SARIMA: {e}')
