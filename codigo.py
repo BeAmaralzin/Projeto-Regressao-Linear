@@ -59,3 +59,6 @@ df_total = df_total.dropna(subset=['DATA', 'QNT'])
 
 print(f'Linhas após limpeza: {len(df_total)}')
 print(f'Período: {df_total["DATA"].min()} a {df_total["DATA"].max()}')
+
+data_hoje = datetime.today().date()
+print(f'Data de hoje: {data_hoje}')
