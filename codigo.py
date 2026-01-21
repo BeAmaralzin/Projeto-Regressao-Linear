@@ -28,64 +28,42 @@ print(f'total de linhas carregadas: {len(df_total)}')
 # converter no formato %m %d 
 
 df_total.columns = df_total.columns.astype(str).str.strip()
-print(f'Colunas disponíveis: {df_total.columns.tolist()}')
 
-# Converter para datetime - usar primeira coluna como data
-date_col = df_total.columns[0]  # Primeira coluna
-qty_col = df_total.columns[1]   # Segunda coluna
-
-try:
-    df_total[date_col] = pd.to_datetime(df_total[date_col], dayfirst=True, errors='raise')
-    print(f'Data convertida com sucesso da coluna: {date_col}')
-except Exception:
-    try:
-        df_total[date_col] = pd.to_datetime(df_total[date_col], dayfirst=True, errors='coerce')
-        if df_total[date_col].isna().all():
-            print(f'Erro: não foi possível converter coluna {date_col} para datas')
-            print('Verifique o formato (ex: 08/2025 ou 01/01/2024)')
-            sys.exit()
-        else:
-            print(f'Coluna {date_col} convertida com parser flexível')
-    except Exception as e:
-        print(f'Erro na conversão: {e}')
-        sys.exit()
-
-# Renomear colunas para padronização
+df_total = df_total.iloc[:,[0,1]]
 df_total.columns = ['DATA', 'QNT']
 
-# Limpar dados
-df_total = df_total.sort_values(by='DATA')
+df_total['DATA'] = pd.to_datetime(df_total['DATA'], dayfirst=True, errors='coerce')
 df_total = df_total.dropna(subset=['DATA', 'QNT'])
 
-print(f'Linhas após limpeza: {len(df_total)}')
-print(f'Período: {df_total["DATA"].min()} a {df_total["DATA"].max()}')
+# Agregar múltiplas observações no mesmo dia
+df_total = df_total.sort_values('DATA')
+df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
 
-# Formato personalizado
-data_formatada = datetime.now().strftime('%m/%Y')
-print(f'Data formatada: {data_formatada}')
+# Criar série temporal com índice de data
+ts = df_total.set_index('DATA')['QNT']
+ts = ts.asfreq('D', fill_value=0)  # Define frequência diária
 
-# Prepara dados para o modelo sarima
+print(f'Série temporal: {len(ts)} observações')
+print(f'Período: {ts.index.min()} a {ts.index.max()}')
 
-df = df_total.set_index('DATA')
-y = df['QNT']
-
-#SAZONALIDADE
-
+# Ajustar modelo SARIMA
 try:
-    model=sm.tsa.statespace.SARIMAX(
-        y,
-        order=(1,1,1),
-        seasonal_order=(1,1,1,12),
-        enforce_stationarity=False,
-        enforce_invertibility=False
-    )
-    
+    model = SARIMAX(ts, order=(1,1,1), seasonal_order=(1,1,1,7))
     results = model.fit(disp=False)
+    print(results.summary())
     
-    print('Modelo trinado com sucesso')
+    # Fazer previsões para os próximos 30 dias
+    forecast = results.get_forecast(steps=30)
+    forecast_values = forecast.predicted_mean
+    
+    # Criar dataframe simples com data e previsão arredondada (sem negativos)
+    forecast_df = pd.DataFrame({
+        'Data': forecast_values.index.strftime('%d/%m/%Y'),
+        'Previsão QNT': forecast_values.round(0).clip(lower=0).astype(int)
+    })
+    
+    print("\nPrevisão para os próximos 30 dias:")
+    print(forecast_df.to_string(index=False))
+    
 except Exception as e:
-    print('erro ao treinar oo modelo SARIMA')
-    print('verifique que a dados suficientes para analise')
-    sys.exit()
-
-
+    print(f'Erro ao ajustar SARIMA: {e}')
