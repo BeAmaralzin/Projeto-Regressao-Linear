@@ -46,7 +46,7 @@ ts.index.freq = 'D'
 print(f'Série temporal: {len(ts)} observações')
 print(f'Período: {ts.index.min()} a {ts.index.max()}')
 
-# Ajustar modelo SARIMA
+# Ajustar modelo SARIMA DIARIO
 try:
     model = SARIMAX(ts, order=(1,1,1), seasonal_order=(1,1,1,7))
     results = model.fit(disp=False)
@@ -67,3 +67,5 @@ try:
     
 except Exception as e:
     print(f'Erro ao ajustar SARIMA: {e}')
+
+# ajustar modelo sarima sazonalidade mensal
