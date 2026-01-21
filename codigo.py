@@ -41,7 +41,7 @@ df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
 
 # Criar série temporal com índice de data
 ts = df_total.set_index('DATA')['QNT']
-ts = ts.asfreq('D', fill_value=0)  # Define frequência diária
+ts.index.freq = 'D'
 
 print(f'Série temporal: {len(ts)} observações')
 print(f'Período: {ts.index.min()} a {ts.index.max()}')

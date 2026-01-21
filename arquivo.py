@@ -39,31 +39,9 @@ df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
 
 # Criar série temporal com índice de data
 ts = df_total.set_index('DATA')['QNT']
-ts = ts.asfreq('D', fill_value=0)  # Define frequência diária, preenche gaps com 0
 
 print(f'Série temporal: {len(ts)} observações')
 print(f'Período: {ts.index.min()} a {ts.index.max()}')
-
-# Análise visual e estatística
-fig, axes = plt.subplots(3, 1, figsize=(12, 8))
-
-# Série original
-axes[0].plot(ts)
-axes[0].set_title('Série Temporal - Quantidade de Pedidos')
-axes[0].set_ylabel('Quantidade')
-axes[0].grid(True)
-
-# ACF
-plot_acf(ts, lags=40, ax=axes[1])
-axes[1].set_title('ACF - Autocorrelação')
-
-# PACF
-plot_pacf(ts, lags=40, ax=axes[2])
-axes[2].set_title('PACF - Autocorrelação Parcial')
-
-plt.tight_layout()
-plt.savefig(r'C:\Users\izabe\Desktop\Projeto Bernardo\analise_acf_pacf.png')
-plt.show()
 
 # Ajustar modelo SARIMA
 # Parâmetros: (p,d,q)(P,D,Q,s) - ajuste conforme necessário
