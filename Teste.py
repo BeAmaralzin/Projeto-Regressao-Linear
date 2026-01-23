@@ -5,6 +5,9 @@ import openpyxl
 import sys
 import statsmodels.api as sm
 from datetime import datetime
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+import matplotlib.pyplot as plt
 
 # configurações iniciais
 
@@ -109,34 +112,4 @@ for proxima_data,previsao_qnt in previsoes_series.items():
         
     print(f"previsão para {proxima_data.strftime('%m/%Y')} : {previsao_qnt_arredondada}")
 
-    # Escrever os resultados na planilha
-
-    aba_alvo = 'graficos'
-    coluna_alvo = 5
-    linha_inicial = 11
-
-    try:
-        # load the workbook from the configured file path
-        workbook = openpyxl.load_workbook(nome_arquivo)
-
-        if aba_alvo in workbook.sheetnames:
-            sheet = workbook[aba_alvo]
-        else:
-            print(f"Aviso Aba {aba_alvo} não encontrada")
-            sheet = workbook.create_sheet(title=aba_alvo)
-
-        for i, previsao in enumerate(previsoes_finais):
-
-            linha_atual = linha_inicial + i
-
-            valor_previsao = previsao['previsao']
-            mes_nome = previsao['mes_nome']
-            data_str = previsao['data'].strftime('%m/%Y')
-
-            sheet.cell(row=linha_atual, column=coluna_alvo).value = valor_previsao
-
-       
-        workbook.save(nome_arquivo) 
-
-    except Exception as e:
-        print("ocorreu um erro, as planilhas não foram salvas")
+    
