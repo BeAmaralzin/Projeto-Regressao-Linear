@@ -112,4 +112,32 @@ for proxima_data,previsao_qnt in previsoes_series.items():
         
     print(f"previsão para {proxima_data.strftime('%m/%Y')} : {previsao_qnt_arredondada}")
 
+# Filtrar previsões para 2026
+previsoes_2026 = [p for p in previsoes_finais if p['data'].year == 2026]
+
+if previsoes_2026:
+    # Extrair dados para o gráfico
+    meses = [p['mes_nome'] for p in previsoes_2026]
+    valores = [p['previsao'] for p in previsoes_2026]
+    datas_str = [p['data'].strftime('%m/%Y') for p in previsoes_2026]
+    
+    # Criar o gráfico
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(len(meses)), valores, marker='o', linewidth=2, markersize=8, color='#2E86AB')
+    
+    # Adicionar valores em cada ponto
+    for i, valor in enumerate(valores):
+        plt.text(i, valor + 5, str(valor), ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
+    # Configurar rótulos e título
+    plt.xlabel('Mês', fontsize=12, fontweight='bold')
+    plt.ylabel('Quantidade Prevista', fontsize=12, fontweight='bold')
+    plt.title('Previsões para 2026', fontsize=14, fontweight='bold')
+    plt.xticks(range(len(meses)), datas_str, rotation=45, ha='right')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(r"C:\Users\izabe\Desktop\Projeto Bernardo\previsao_anual2026.png", dpi=300, bbox_inches='tight')
+    plt.show()
+else:
+    print("Nenhuma previsão encontrada para 2026")
     

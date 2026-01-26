@@ -60,10 +60,10 @@ try:
     print(results.summary())
     
     # Fazer previsões para os próximos 30 dias com intervalo de confiança
-    forecast = results.get_forecast(steps=30)
+    forecast = results.get_forecast(steps=60)
     forecast_values = forecast.predicted_mean
-    forecast_ci = forecast.conf_int(alpha=0.2)  # 80% intervalo de confiança
-    
+    forecast_ci = forecast.conf_int(alpha=0.05)  # 90% intervalo de confiança
+
     # Adicionar variação aleatória dentro do intervalo de confiança
     np.random.seed(None)  # Para variação não determinística
     lower_bound = forecast_ci.iloc[:, 0]

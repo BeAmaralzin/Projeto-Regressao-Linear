@@ -59,37 +59,14 @@ try:
     results = model.fit(disp=False, cov_type='approx')
     print(results.summary())
     
-    # Fazer previsões para os próximos 30 dias com intervalo de confiança
-    forecast = results.get_forecast(steps=30)
+    # Fazer previsões para os próximos 30 dias
+    forecast = results.get_forecast(steps=60)
     forecast_values = forecast.predicted_mean
-    forecast_ci = forecast.conf_int(alpha=0.2)  # 80% intervalo de confiança
     
-    # Adicionar variação aleatória dentro do intervalo de confiança
-    np.random.seed(None)  # Para variação não determinística
-    lower_bound = forecast_ci.iloc[:, 0]
-    upper_bound = forecast_ci.iloc[:, 1]
-    
-    # Gerar valores aleatórios entre os limites, mas tendendo para a previsão média
-    forecast_com_variacao = []
-    for i, (lower, upper, mean, data_index) in enumerate(zip(lower_bound, upper_bound, forecast_values, forecast_values.index)):
-        # Verificar se é final de semana (5 = sábado, 6 = domingo)
-        dia_semana = data_index.weekday()
-        
-        if dia_semana in [5, 6]:  # Finais de semana
-            # Colocar 0 nos finais de semana
-            forecast_com_variacao.append(0)
-        else:
-            # Dias da semana: gerar variação aleatória
-            lower_clipped = max(0, lower)
-            upper_clipped = max(lower_clipped + 1, upper)
-            valor = np.random.normal(loc=mean, scale=(upper - lower) / 4)
-            valor = np.clip(valor, lower_clipped, upper_clipped)
-            forecast_com_variacao.append(max(0, round(valor)))
-    
-    # Criar dataframe com as previsões variadas
+    # Criar dataframe simples com data e previsão arredondada (sem negativos)
     forecast_df = pd.DataFrame({
         'Data': forecast_values.index.strftime('%d/%m/%Y'),
-        'Previsão QNT': forecast_com_variacao
+        'Previsão QNT': forecast_values.round(0).clip(lower=0).astype(int)
     })
     
     print("\nPrevisão para os próximos 30 dias:")
@@ -99,7 +76,7 @@ try:
     plt.figure(figsize=(14, 6))
     forecast_df['Data'] = pd.to_datetime(forecast_df['Data'], format='%d/%m/%Y')
     plt.plot(forecast_df['Data'], forecast_df['Previsão QNT'], marker='o', linestyle='-', linewidth=2, markersize=6, color='#2E86AB')
-    plt.title('Previsão de Quantidade - Próximos 30 Dias', fontsize=16, fontweight='bold')
+    plt.title('Previsão de Quantidade - Próximos 60 Dias', fontsize=16, fontweight='bold')
     plt.xlabel('Data', fontsize=12, fontweight='bold')
     plt.ylabel('Quantidade (QNT)', fontsize=12, fontweight='bold')
     plt.grid(True, alpha=0.3)
