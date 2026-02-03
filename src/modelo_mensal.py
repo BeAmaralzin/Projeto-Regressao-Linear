@@ -80,21 +80,7 @@ except Exception as e:
     print('verifique que a dados suficientes para analise')
     sys.exit()
 
-# perguntar ao usuario a data que ele quer prever
-
-entrada_usuario = input("Digite o mês e o ano que deseja prever ex: 08/2026: ")
-    
-try:
-    data_alvo = datetime.strptime(entrada_usuario,"%m/%Y")
-except ValueError:
-    print("Erro: Formato invalido")
-    sys.exit()
-
-ultima_data = pd.to_datetime(y.index[-1])
-
-num_previsoes = (data_alvo.year - ultima_data.year) * 12 + (data_alvo.month - ultima_data.month)
-
-forecast_object = results.get_forecast(steps = num_previsoes)
+forecast_object = results.get_forecast(steps = 12)
 previsoes_series = forecast_object.predicted_mean
 
 previsoes_finais = []
