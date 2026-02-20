@@ -10,7 +10,6 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 import matplotlib.pyplot as plt
 
 arquivo24 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2024 (1).xlsx"
-arquivo25 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2025 (1).xlsx"
 abas = ['AAE2', 'CANT2', 'PORT2', 'SERV2']
 
 # Dicionário para armazenar os resultados de cada aba
@@ -24,12 +23,10 @@ for aba in abas:
     
     try:
         df_24 = pd.read_excel(arquivo24, sheet_name=aba)
-        df_25 = pd.read_excel(arquivo25, sheet_name=aba)
     except Exception as e:
         print(f'erro ao ler a aba {aba}: {e}')
         continue
     
-    # ===== PROCESSAR ARQUIVO 2024 =====
     colunas_fixas = ['DATA']
     
     # Obter índice dinâmico de B1 até a primeira coluna livre - 1
