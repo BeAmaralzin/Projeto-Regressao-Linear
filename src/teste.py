@@ -48,7 +48,6 @@ for aba in abas:
     
     wb.close()
     
-    # Transformar dados de 2024
     df_longo = df_24.melt(id_vars=colunas_fixas, value_vars=var_name, var_name='Escola', value_name='Valor')
     df_longo['Regiao'] = df_longo['Escola'].str.extract(r'/([^/]+)/')
     resultado = df_longo.groupby('Regiao')['Valor'].sum().reset_index()
