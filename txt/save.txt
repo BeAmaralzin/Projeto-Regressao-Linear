@@ -1,0 +1,106 @@
+# Dicionário para armazenar os resultados de cada aba
+resultados_abas = {}
+
+# Processar cada aba separadamente
+for aba in abas:
+    print(f"\n{'='*60}")
+    print(f"Processando aba: {aba}")
+    print(f"{'='*60}\n")
+    
+    try:
+        df_24 = pd.read_excel(arquivo24, sheet_name=aba)
+        df_25 = pd.read_excel(arquivo25, sheet_name=aba)
+    except Exception as e:
+        print(f'erro ao ler a aba {aba}: {e}')
+        continue
+    
+    df_total = pd.concat([df_24, df_25], ignore_index=True)
+    print(f'total de linhas carregadas para {aba}: {len(df_total)}')
+
+    # converter no formato %m %d 
+
+    df_total.columns = df_total.columns.astype(str).str.strip()
+
+    df_total = df_total.iloc[:,[0,1]]
+    df_total.columns = ['DATA', 'QNT']
+
+    df_total['DATA'] = pd.to_datetime(df_total['DATA'], dayfirst=True, errors='coerce')
+    df_total = df_total.dropna(subset=['DATA', 'QNT'])
+
+    # Agregar múltiplas observações no mesmo dia
+    df_total = df_total.sort_values('DATA')
+    df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
+
+    # Criar série temporal com índice de data
+    ts = df_total.set_index('DATA')['QNT']
+    # Infer frequency instead of forcing it (handles gaps in data)
+    ts.index.freq = pd.infer_freq(ts.index)
+
+    print(f'Série temporal para {aba}: {len(ts)} observações')
+    print(f'Período: {ts.index.min()} a {ts.index.max()}')
+
+    # Ajustar modelo SARIMA DIARIO
+    try:
+        model=sm.tsa.statespace.SARIMAX(
+            ts, 
+            order=(1,1,1), 
+            seasonal_order=(1,1,1,7),
+            enforce_stationarity=False,
+            enforce_invertibility=False
+            )
+        results = model.fit(disp=False, cov_type='approx')
+        print(results.summary())
+        
+        # Fazer previsões para os próximos 60 dias com intervalo de confiança
+        forecast = results.get_forecast(steps=60)
+        forecast_values = forecast.predicted_mean
+        forecast_ci = forecast.conf_int(alpha=0.05)  # 95% intervalo de confiança
+
+        # Perfil mensal histórico (somente dias úteis) para manter o padrão observado
+        ts_df = ts.to_frame(name='QNT')
+        ts_df['weekday'] = ts_df.index.weekday
+        ts_df['month'] = ts_df.index.month
+        ts_weekdays = ts_df[ts_df['weekday'] < 5]
+        monthly_mean = ts_weekdays.groupby('month')['QNT'].mean()
+        overall_mean = ts_weekdays['QNT'].mean()
+        month_factor = (monthly_mean / overall_mean).to_dict()
+
+        # Adicionar variação aleatória dentro do intervalo de confiança
+        np.random.seed(None) 
+        lower_bound = forecast_ci.iloc[:, 0]
+        upper_bound = forecast_ci.iloc[:, 1]
+        
+        # Gerar valores aleatórios entre os limites, mas tendendo para a previsão média
+        forecast_com_variacao = []
+        for i, (lower, upper, mean, data_index) in enumerate(zip(lower_bound, upper_bound, forecast_values, forecast_values.index)):
+
+            dia_semana = data_index.weekday()
+            fator_mes = month_factor.get(data_index.month, 1.0)
+            
+            if dia_semana in [5, 6]:  # Sábado ou Domingo
+                forecast_com_variacao.append(0)
+            else:
+                # Dias da semana: gerar variação aleatória
+                lower_clipped = max(0, lower * fator_mes)
+                upper_clipped = max(lower_clipped + 1, upper * fator_mes)
+                mean_adjusted = mean * fator_mes
+                valor = np.random.normal(loc=mean_adjusted, scale=(upper_clipped - lower_clipped) / 4)
+                valor = np.clip(valor, lower_clipped, upper_clipped)
+                forecast_com_variacao.append(max(0, round(valor)))
+        
+        # Criar dataframe com as previsões variadas
+        forecast_df = pd.DataFrame({
+            'Data': forecast_values.index.strftime('%d/%m/%Y'),
+            'Previsão QNT': forecast_com_variacao
+        })
+        
+        print(f"\nPrevisão para os próximos 60 dias - {aba}:")
+        print(forecast_df.to_string(index=False))
+        
+    except Exception as e:
+        print(f'Erro ao ajustar SARIMA para {aba}: {e}')
+
+print(f"\n{'='*60}")
+print("Processamento concluído!")
+print(f"Total de abas processadas: {len(resultados_abas)}")
+print(f"{'='*60}")
