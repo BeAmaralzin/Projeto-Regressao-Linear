@@ -9,9 +9,10 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import matplotlib.pyplot as plt
 
-arquivo24 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2024.xlsx"
-arquivo25 = r"C:\Users\izabe\Downloads\PEDIDOS X DIAS 2025.xlsx"
+arquivo24 = r"C:\Users\izabe\Downloads\DADOS 2024.xlsx"
+arquivo25 = r"C:\Users\izabe\Downloads\DADOS 2025.xlsx"
 abas = ['AAE', 'CANT', 'PORT', 'SERV']
+regiao = ['RG B', 'RG L', 'RG N', 'RG NO', 'RG NE', 'RG O', 'RG VN', 'RG CS','RG P']
 
 # Dicionário para armazenar os resultados de cada aba
 resultados_abas = {}
@@ -36,110 +37,99 @@ for aba in abas:
 
     df_total.columns = df_total.columns.astype(str).str.strip()
 
-    df_total = df_total.iloc[:,[0,1]]
-    df_total.columns = ['DATA', 'QNT']
-
+    # Manter DATA como primeiro índice e depois as colunas de região
+    df_total.rename(columns={df_total.columns[0]: 'DATA'}, inplace=True)
     df_total['DATA'] = pd.to_datetime(df_total['DATA'], dayfirst=True, errors='coerce')
-    df_total = df_total.dropna(subset=['DATA', 'QNT'])
-
-    # Agregar múltiplas observações no mesmo dia
+    df_total = df_total.dropna(subset=['DATA'])
     df_total = df_total.sort_values('DATA')
-    df_total = df_total.groupby('DATA')['QNT'].sum().reset_index()
 
-    # Criar série temporal com índice de data
-    ts = df_total.set_index('DATA')['QNT']
-    # Infer frequency instead of forcing it (handles gaps in data)
-    ts.index.freq = pd.infer_freq(ts.index)
+    # Dicionário para armazenar resultados das regiões
+    resultados_regioes = {}
 
-    print(f'Série temporal para {aba}: {len(ts)} observações')
-    print(f'Período: {ts.index.min()} a {ts.index.max()}')
-
-    # Ajustar modelo SARIMA DIARIO
-    try:
-        model=sm.tsa.statespace.SARIMAX(
-            ts, 
-            order=(1,1,1), 
-            seasonal_order=(1,1,1,7),
-            enforce_stationarity=False,
-            enforce_invertibility=False
-            )
-        results = model.fit(disp=False, cov_type='approx')
-        print(results.summary())
+    # Processar cada região (coluna)
+    for reg in regiao:
+        if reg not in df_total.columns:
+            print(f"  Coluna {reg} não encontrada")
+            continue
         
-        # Fazer previsões para os próximos 60 dias com intervalo de confiança
-        forecast = results.get_forecast(steps=60)
-        forecast_values = forecast.predicted_mean
-        forecast_ci = forecast.conf_int(alpha=0.05)  # 95% intervalo de confiança
-
-        # Perfil mensal histórico (somente dias úteis) para manter o padrão observado
-        ts_df = ts.to_frame(name='QNT')
-        ts_df['weekday'] = ts_df.index.weekday
-        ts_df['month'] = ts_df.index.month
-        ts_weekdays = ts_df[ts_df['weekday'] < 5]
-        monthly_mean = ts_weekdays.groupby('month')['QNT'].mean()
-        overall_mean = ts_weekdays['QNT'].mean()
-        month_factor = (monthly_mean / overall_mean).to_dict()
-
-        # Adicionar variação aleatória dentro do intervalo de confiança
-        np.random.seed(None) 
-        lower_bound = forecast_ci.iloc[:, 0]
-        upper_bound = forecast_ci.iloc[:, 1]
+        print(f"\n  Processando região: {reg}")
         
-        # Gerar valores aleatórios entre os limites, mas tendendo para a previsão média
-        forecast_com_variacao = []
-        for i, (lower, upper, mean, data_index) in enumerate(zip(lower_bound, upper_bound, forecast_values, forecast_values.index)):
+        # Criar série temporal para esta região
+        ts = df_total.set_index('DATA')[reg].copy()
+        ts = ts.dropna()
+        
+        # Infer frequency
+        ts.index.freq = pd.infer_freq(ts.index)
 
-            dia_semana = data_index.weekday()
-            fator_mes = month_factor.get(data_index.month, 1.0)
+        print(f'  Série temporal para {reg}: {len(ts)} observações')
+        print(f'  Período: {ts.index.min()} a {ts.index.max()}')
+
+        # Ajustar modelo SARIMA DIARIO
+        try:
+            model=sm.tsa.statespace.SARIMAX(
+                ts, 
+                order=(1,1,1), 
+                seasonal_order=(1,1,1,7),
+                enforce_stationarity=False,
+                enforce_invertibility=False
+                )
+            results = model.fit(disp=False, cov_type='approx')
+            print(results.summary())
             
-            if dia_semana in [5, 6]:  # Sábado ou Domingo
-                forecast_com_variacao.append(0)
-            else:
-                # Dias da semana: gerar variação aleatória
-                lower_clipped = max(0, lower * fator_mes)
-                upper_clipped = max(lower_clipped + 1, upper * fator_mes)
-                mean_adjusted = mean * fator_mes
-                valor = np.random.normal(loc=mean_adjusted, scale=(upper_clipped - lower_clipped) / 4)
-                valor = np.clip(valor, lower_clipped, upper_clipped)
-                forecast_com_variacao.append(max(0, round(valor)))
-        
-        # Criar dataframe com as previsões variadas
-        forecast_df = pd.DataFrame({
-            'Data': forecast_values.index.strftime('%d/%m/%Y'),
-            'Previsão QNT': forecast_com_variacao
-        })
-        
-        print(f"\nPrevisão para os próximos 60 dias - {aba}:")
-        print(forecast_df.to_string(index=False))
-        
-        # Criar gráfico de linha com matplotlib
-        plt.figure(figsize=(14, 6))
-        forecast_df['Data'] = pd.to_datetime(forecast_df['Data'], format='%d/%m/%Y')
-        plt.plot(forecast_df['Data'], forecast_df['Previsão QNT'], marker='o', linestyle='-', linewidth=2, markersize=6, color='#2E86AB')
-        
-        # Adicionar valores em cada ponto
-        for i, (data, valor) in enumerate(zip(forecast_df['Data'], forecast_df['Previsão QNT'])):
-            plt.text(data, valor, str(int(valor)), ha='center', va='bottom', fontsize=7, fontweight='bold')
-        
-        plt.title(f'Previsão de Quantidade - {aba} - Próximos 60 Dias', fontsize=16, fontweight='bold')
-        plt.xlabel('Data', fontsize=12, fontweight='bold')
-        plt.ylabel('Quantidade (QNT)', fontsize=12, fontweight='bold')
-        plt.grid(True, alpha=0.3)
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        
-        # Salvar com nome específico da aba
-        nome_arquivo = rf"C:\Users\izabe\Desktop\Projeto Bernardo\previsao_60_dias_{aba}.png"
-        plt.savefig(nome_arquivo, dpi=300, bbox_inches='tight')
-        print(f"\nGráfico salvo como: {nome_arquivo}")
-        plt.show()
-        plt.close()
-        
-        # Armazenar resultado
-        resultados_abas[aba] = forecast_df
-        
-    except Exception as e:
-        print(f'Erro ao ajustar SARIMA para {aba}: {e}')
+            # Fazer previsões para os próximos 60 dias com intervalo de confiança
+            forecast = results.get_forecast(steps=30)
+            forecast_values = forecast.predicted_mean
+            forecast_ci = forecast.conf_int(alpha=0.05)  # 95% intervalo de confiança
+
+            # Perfil mensal histórico (somente dias úteis) para manter o padrão observado
+            ts_df = ts.to_frame(name='QNT')
+            ts_df['weekday'] = ts_df.index.weekday
+            ts_df['month'] = ts_df.index.month
+            ts_weekdays = ts_df[ts_df['weekday'] < 5]
+            monthly_mean = ts_weekdays.groupby('month')['QNT'].mean()
+            overall_mean = ts_weekdays['QNT'].mean()
+            month_factor = (monthly_mean / overall_mean).to_dict()
+
+            # Adicionar variação aleatória dentro do intervalo de confiança
+            np.random.seed(None) 
+            lower_bound = forecast_ci.iloc[:, 0]
+            upper_bound = forecast_ci.iloc[:, 1]
+            
+            # Gerar valores aleatórios entre os limites, mas tendendo para a previsão média
+            forecast_com_variacao = []
+            for i, (lower, upper, mean, data_index) in enumerate(zip(lower_bound, upper_bound, forecast_values, forecast_values.index)):
+
+                dia_semana = data_index.weekday()
+                fator_mes = month_factor.get(data_index.month, 1.0)
+                
+                if dia_semana in [5, 6]:  # Sábado ou Domingo
+                    forecast_com_variacao.append(0)
+                else:
+                    # Dias da semana: gerar variação aleatória
+                    lower_clipped = max(0, lower * fator_mes)
+                    upper_clipped = max(lower_clipped + 1, upper * fator_mes)
+                    mean_adjusted = mean * fator_mes
+                    valor = np.random.normal(loc=mean_adjusted, scale=(upper_clipped - lower_clipped) / 4)
+                    valor = np.clip(valor, lower_clipped, upper_clipped)
+                    forecast_com_variacao.append(max(0, round(valor)))
+            
+            # Criar dataframe com as previsões variadas
+            forecast_df = pd.DataFrame({
+                'Data': forecast_values.index.strftime('%d/%m/%Y'),
+                'Previsão QNT': forecast_com_variacao
+            })
+            
+            print(f"\n  Previsão para os próximos 60 dias - {aba} / {reg}:")
+            print(forecast_df.to_string(index=False))
+            
+            # Armazenar resultado
+            resultados_regioes[reg] = forecast_df
+            
+        except Exception as e:
+            print(f'  Erro ao ajustar SARIMA para {reg}: {e}')
+    
+    # Armazenar resultados da aba
+    resultados_abas[aba] = resultados_regioes
 
 print(f"\n{'='*60}")
 print("Processamento concluído!")
