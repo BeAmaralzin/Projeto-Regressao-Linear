@@ -1,0 +1,110 @@
+================================================================================
+PARÂMETROS SARIMA OTIMIZADOS - AUTO ARIMA
+================================================================================
+
+
+================================================================================
+ABA: AAE
+================================================================================
+
+  RG B     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=5280.65
+  RG L     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=4299.80
+  RG N     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=5475.97
+  RG NO    → order=(3, 0, 0), seasonal_order=(2, 0, 2, 7), AIC=5398.72
+  RG NE    → order=(1, 1, 1), seasonal_order=(2, 0, 2, 7), AIC=5685.93
+  RG O     → order=(3, 1, 1), seasonal_order=(2, 0, 1, 7), AIC=4597.65
+  RG VN    → order=(3, 0, 0), seasonal_order=(1, 0, 1, 7), AIC=6544.86
+  RG CS    → order=(3, 0, 0), seasonal_order=(1, 0, 1, 7), AIC=5405.24
+  RG P     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=4953.29
+
+================================================================================
+ABA: CANT
+================================================================================
+
+  RG B     → order=(1, 0, 2), seasonal_order=(1, 0, 1, 7), AIC=4042.73
+  RG L     → order=(1, 0, 2), seasonal_order=(1, 0, 1, 7), AIC=3253.81
+  RG N     → order=(3, 0, 3), seasonal_order=(1, 0, 1, 7), AIC=4085.14
+  RG NO    → order=(2, 0, 1), seasonal_order=(1, 0, 1, 7), AIC=3847.47
+  RG NE    → order=(3, 0, 0), seasonal_order=(2, 0, 2, 7), AIC=4519.43
+  RG O     → order=(1, 0, 1), seasonal_order=(1, 0, 1, 7), AIC=3117.22
+  RG VN    → order=(3, 0, 0), seasonal_order=(1, 0, 1, 7), AIC=5202.60
+  RG CS    → order=(3, 1, 1), seasonal_order=(2, 0, 1, 7), AIC=3952.52
+  RG P     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=3535.18
+
+================================================================================
+ABA: PORT
+================================================================================
+
+  RG B     → order=(1, 1, 1), seasonal_order=(0, 0, 2, 7), AIC=3119.42
+  RG L     → order=(1, 1, 1), seasonal_order=(2, 0, 2, 7), AIC=2155.24
+  RG N     → order=(3, 1, 3), seasonal_order=(0, 0, 2, 7), AIC=2693.98
+  RG NO    → order=(1, 1, 1), seasonal_order=(1, 0, 2, 7), AIC=2490.74
+  RG NE    → order=(2, 1, 2), seasonal_order=(0, 0, 2, 7), AIC=3006.39
+  RG O     → order=(1, 1, 1), seasonal_order=(0, 0, 0, 7), AIC=2429.11
+  RG VN    → order=(1, 1, 1), seasonal_order=(1, 0, 0, 7), AIC=3237.36
+  RG CS    → order=(1, 1, 1), seasonal_order=(2, 0, 0, 7), AIC=3262.72
+  RG P     → order=(3, 1, 3), seasonal_order=(1, 0, 2, 7), AIC=2291.47
+
+================================================================================
+ABA: SERV
+================================================================================
+
+  RG B     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=3924.85
+  RG L     → order=(3, 0, 1), seasonal_order=(2, 0, 2, 7), AIC=3219.56
+  RG N     → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=3809.64
+  RG NO    → order=(3, 0, 0), seasonal_order=(2, 0, 2, 7), AIC=3919.83
+  RG NE    → order=(1, 0, 2), seasonal_order=(1, 0, 1, 7), AIC=4281.92
+  RG O     → order=(2, 0, 1), seasonal_order=(1, 0, 1, 7), AIC=3364.27
+  RG VN    → order=(3, 0, 0), seasonal_order=(1, 0, 1, 7), AIC=5273.33
+  RG CS    → order=(1, 1, 1), seasonal_order=(1, 0, 1, 7), AIC=3737.00
+  RG P     → order=(3, 0, 0), seasonal_order=(1, 0, 1, 7), AIC=3404.51
+
+
+================================================================================
+CÓDIGO SUGERIDO PARA CADA ABA/REGIÃO:
+================================================================================
+
+
+# AAE
+# RG B: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG L: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG N: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG NO: order=(3, 0, 0), seasonal_order=(2, 0, 2, 7)
+# RG NE: order=(1, 1, 1), seasonal_order=(2, 0, 2, 7)
+# RG O: order=(3, 1, 1), seasonal_order=(2, 0, 1, 7)
+# RG VN: order=(3, 0, 0), seasonal_order=(1, 0, 1, 7)
+# RG CS: order=(3, 0, 0), seasonal_order=(1, 0, 1, 7)
+# RG P: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+
+# CANT
+# RG B: order=(1, 0, 2), seasonal_order=(1, 0, 1, 7)
+# RG L: order=(1, 0, 2), seasonal_order=(1, 0, 1, 7)
+# RG N: order=(3, 0, 3), seasonal_order=(1, 0, 1, 7)
+# RG NO: order=(2, 0, 1), seasonal_order=(1, 0, 1, 7)
+# RG NE: order=(3, 0, 0), seasonal_order=(2, 0, 2, 7)
+# RG O: order=(1, 0, 1), seasonal_order=(1, 0, 1, 7)
+# RG VN: order=(3, 0, 0), seasonal_order=(1, 0, 1, 7)
+# RG CS: order=(3, 1, 1), seasonal_order=(2, 0, 1, 7)
+# RG P: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+
+# PORT
+# RG B: order=(1, 1, 1), seasonal_order=(0, 0, 2, 7)
+# RG L: order=(1, 1, 1), seasonal_order=(2, 0, 2, 7)
+# RG N: order=(3, 1, 3), seasonal_order=(0, 0, 2, 7)
+# RG NO: order=(1, 1, 1), seasonal_order=(1, 0, 2, 7)
+# RG NE: order=(2, 1, 2), seasonal_order=(0, 0, 2, 7)
+# RG O: order=(1, 1, 1), seasonal_order=(0, 0, 0, 7)
+# RG VN: order=(1, 1, 1), seasonal_order=(1, 0, 0, 7)
+# RG CS: order=(1, 1, 1), seasonal_order=(2, 0, 0, 7)
+# RG P: order=(3, 1, 3), seasonal_order=(1, 0, 2, 7)
+
+# SERV
+# RG B: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG L: order=(3, 0, 1), seasonal_order=(2, 0, 2, 7)
+# RG N: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG NO: order=(3, 0, 0), seasonal_order=(2, 0, 2, 7)
+# RG NE: order=(1, 0, 2), seasonal_order=(1, 0, 1, 7)
+# RG O: order=(2, 0, 1), seasonal_order=(1, 0, 1, 7)
+# RG VN: order=(3, 0, 0), seasonal_order=(1, 0, 1, 7)
+# RG CS: order=(1, 1, 1), seasonal_order=(1, 0, 1, 7)
+# RG P: order=(3, 0, 0), seasonal_order=(1, 0, 1, 7)

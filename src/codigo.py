@@ -3,10 +3,12 @@ import dateutil.relativedelta
 import numpy as np
 import openpyxl
 import sys
+import warnings
 import statsmodels.api as sm
 from datetime import datetime
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import matplotlib.pyplot as plt
 
 arquivo24 = r"C:\Users\izabe\Downloads\DADOS 2024.xlsx"
@@ -68,16 +70,42 @@ for aba in abas:
         try:
             model=sm.tsa.statespace.SARIMAX(
                 ts, 
-                order=(1,1,1), 
-                seasonal_order=(1,1,1,7),
+                order=(3,0,3), 
+                seasonal_order=(2,0,2,7),
                 enforce_stationarity=False,
                 enforce_invertibility=False
                 )
-            results = model.fit(disp=False, cov_type='approx')
+            results = None
+            convergiu = False
+            metodos_otimizacao = ['lbfgs', 'powell', 'nm']
+
+            for metodo in metodos_otimizacao:
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter('always', ConvergenceWarning)
+                    tentativa = model.fit(
+                        method=metodo,
+                        maxiter=500,
+                        disp=False,
+                        cov_type='approx'
+                    )
+
+                houve_warning_convergencia = any(
+                    issubclass(item.category, ConvergenceWarning) for item in w
+                )
+                convergiu = bool(tentativa.mle_retvals.get('converged', False)) and not houve_warning_convergencia
+                results = tentativa
+
+                if convergiu:
+                    print(f"  Modelo convergiu usando método: {metodo}")
+                    break
+
+            if not convergiu:
+                print("  Aviso: sem convergência completa; usando melhor ajuste encontrado.")
+
             print(results.summary())
             
             # Fazer previsões para os próximos 60 dias com intervalo de confiança
-            forecast = results.get_forecast(steps=30)
+            forecast = results.get_forecast(steps=365)
             forecast_values = forecast.predicted_mean
             forecast_ci = forecast.conf_int(alpha=0.05)  # 95% intervalo de confiança
 
@@ -90,30 +118,20 @@ for aba in abas:
             overall_mean = ts_weekdays['QNT'].mean()
             month_factor = (monthly_mean / overall_mean).to_dict()
 
-            # Adicionar variação aleatória dentro do intervalo de confiança
-            np.random.seed(None) 
-            lower_bound = forecast_ci.iloc[:, 0]
-            upper_bound = forecast_ci.iloc[:, 1]
-            
-            # Gerar valores aleatórios entre os limites, mas tendendo para a previsão média
+            # Usar previsões médias ajustadas pelo fator mensal
             forecast_com_variacao = []
-            for i, (lower, upper, mean, data_index) in enumerate(zip(lower_bound, upper_bound, forecast_values, forecast_values.index)):
-
+            for mean, data_index in zip(forecast_values, forecast_values.index):
                 dia_semana = data_index.weekday()
                 fator_mes = month_factor.get(data_index.month, 1.0)
                 
                 if dia_semana in [5, 6]:  # Sábado ou Domingo
                     forecast_com_variacao.append(0)
                 else:
-                    # Dias da semana: gerar variação aleatória
-                    lower_clipped = max(0, lower * fator_mes)
-                    upper_clipped = max(lower_clipped + 1, upper * fator_mes)
+                    # Dias da semana: usar previsão média ajustada pelo fator mensal
                     mean_adjusted = mean * fator_mes
-                    valor = np.random.normal(loc=mean_adjusted, scale=(upper_clipped - lower_clipped) / 4)
-                    valor = np.clip(valor, lower_clipped, upper_clipped)
-                    forecast_com_variacao.append(max(0, round(valor)))
+                    forecast_com_variacao.append(max(0, round(mean_adjusted)))
             
-            # Criar dataframe com as previsões variadas
+            # Criar dataframe com as previsões
             forecast_df = pd.DataFrame({
                 'Data': forecast_values.index.strftime('%d/%m/%Y'),
                 'Previsão QNT': forecast_com_variacao
@@ -135,3 +153,23 @@ print(f"\n{'='*60}")
 print("Processamento concluído!")
 print(f"Total de abas processadas: {len(resultados_abas)}")
 print(f"{'='*60}")
+
+# Salvar resultados em planilha Excel
+arquivo_saida = r"C:\Users\izabe\Desktop\Projeto Bernardo\excel\PrevisoesPedidos(3,0,3).xlsx"
+
+with pd.ExcelWriter(arquivo_saida, engine='openpyxl') as writer:
+    for aba, resultados_regioes in resultados_abas.items():
+        # Consolidar dados de todas as regiões
+        dfs_regioes = {}
+        for reg, forecast_df in resultados_regioes.items():
+            # Usar 'Data' como índice temporário e extrair a coluna de previsão
+            dfs_regioes[reg] = forecast_df.set_index('Data')['Previsão QNT']
+        
+        # Combinar em um único DataFrame com datas na coluna A
+        if dfs_regioes:
+            consolidated = pd.DataFrame(dfs_regioes)
+            consolidated = consolidated.reset_index()
+            
+            # Escrever na aba correspondente
+            consolidated.to_excel(writer, sheet_name=aba, index=False)
+            print(f"Aba '{aba}' salva com {len(dfs_regioes)} regiões")
