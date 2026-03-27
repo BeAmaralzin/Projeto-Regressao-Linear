@@ -4,7 +4,7 @@ Sistema de processamento e análise de dados de pedidos organizados por dias, co
 
 ## 📋 Descrição
 
-Este projeto automatiza o processamento de arquivos Excel contendo informações de pedidos por dias, consolidando os dados por região através de extração via regex e agregações por `pandas`.
+Este projeto tem como objetivo prever o numero de pedidos de substituição nas escolas de Belo horizonte, para mode lar os dados usamos as bibliotecas "pandas", "openxml", "numpy", "dateutil". O código lê dados de arquivos Excel, transforma o formato dos dados, extrai informações de região usando expressões regulares, agrega os dados por região e exporta os resultados em novos arquivos Excel.
 
 ### Funcionalidades Principais
 

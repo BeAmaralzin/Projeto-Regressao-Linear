@@ -3,18 +3,66 @@ import dateutil.relativedelta
 import numpy as np
 import openpyxl
 import sys
-import warnings
 import statsmodels.api as sm
 from datetime import datetime
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-from statsmodels.tools.sm_exceptions import ConvergenceWarning
 import matplotlib.pyplot as plt
 
 arquivo24 = r"C:\Users\izabe\Downloads\DADOS 2024.xlsx"
 arquivo25 = r"C:\Users\izabe\Downloads\DADOS 2025.xlsx"
 abas = ['AAE', 'CANT', 'PORT', 'SERV']
 regiao = ['RG B', 'RG L', 'RG N', 'RG NO', 'RG NE', 'RG O', 'RG VN', 'RG CS','RG P']
+
+#dicionario para parametros
+parametros = {
+    'AAE' : {
+        'RG B': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG L': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG N': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG NO': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG NE': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG O': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG VN': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG CS': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)},
+        'RG P': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 2, 7)}
+    },
+    'CANT' : {
+        'RG B': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG L': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG N': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG NO': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG NE': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG O': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG VN': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG CS': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)},
+        'RG P': {'order':(3, 0, 2), 'seasonal_order':(1, 0, 2, 7)}
+    },
+    'PORT' : {
+        'RG B': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG L': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG N': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG NO': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG NE': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG O': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG VN': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG CS': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)},
+        'RG P': {'order':(3, 1, 3), 'seasonal_order':(2, 0, 2, 7)}
+    },
+    'SERV' : {
+        'RG B': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG L': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG N': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG NO': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG NE': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG O': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG VN': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG CS': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)},
+        'RG P': {'order':(3, 0, 0), 'seasonal_order':(1, 0, 1, 7)}
+    }
+
+    
+}
 
 # Dicionário para armazenar os resultados de cada aba
 resultados_abas = {}
@@ -53,15 +101,24 @@ for aba in abas:
         if reg not in df_total.columns:
             print(f"  Coluna {reg} não encontrada")
             continue
+
+        parametros_regiao = parametros.get(aba, {}).get(reg)
+        if parametros_regiao is None:
+            print(f"  Parâmetros SARIMA não encontrados para {aba} / {reg}")
+            continue
+
+        order = tuple(parametros_regiao['order'])
+        seasonal_order = tuple(parametros_regiao['seasonal_order'])
         
         print(f"\n  Processando região: {reg}")
+        print(f"  Parâmetros SARIMA: order={order}, seasonal_order={seasonal_order}")
         
         # Criar série temporal para esta região
         ts = df_total.set_index('DATA')[reg].copy()
         ts = ts.dropna()
         
         # Infer frequency
-        ts.index.freq = pd.infer_freq(ts.index)
+        ts = ts.resample('D').fillna(0)
 
         print(f'  Série temporal para {reg}: {len(ts)} observações')
         print(f'  Período: {ts.index.min()} a {ts.index.max()}')
@@ -70,38 +127,12 @@ for aba in abas:
         try:
             model=sm.tsa.statespace.SARIMAX(
                 ts, 
-                order=(3,0,3), 
-                seasonal_order=(2,0,2,7),
-                enforce_stationarity=False,
-                enforce_invertibility=False
+                order=order,
+                seasonal_order=seasonal_order,
+                enforce_stationarity=True,
+                enforce_invertibility=True
                 )
-            results = None
-            convergiu = False
-            metodos_otimizacao = ['lbfgs', 'powell', 'nm']
-
-            for metodo in metodos_otimizacao:
-                with warnings.catch_warnings(record=True) as w:
-                    warnings.simplefilter('always', ConvergenceWarning)
-                    tentativa = model.fit(
-                        method=metodo,
-                        maxiter=500,
-                        disp=False,
-                        cov_type='approx'
-                    )
-
-                houve_warning_convergencia = any(
-                    issubclass(item.category, ConvergenceWarning) for item in w
-                )
-                convergiu = bool(tentativa.mle_retvals.get('converged', False)) and not houve_warning_convergencia
-                results = tentativa
-
-                if convergiu:
-                    print(f"  Modelo convergiu usando método: {metodo}")
-                    break
-
-            if not convergiu:
-                print("  Aviso: sem convergência completa; usando melhor ajuste encontrado.")
-
+            results = model.fit(disp=False, cov_type='approx')
             print(results.summary())
             
             # Fazer previsões para os próximos 60 dias com intervalo de confiança
@@ -155,7 +186,7 @@ print(f"Total de abas processadas: {len(resultados_abas)}")
 print(f"{'='*60}")
 
 # Salvar resultados em planilha Excel
-arquivo_saida = r"C:\Users\izabe\Desktop\Projeto Bernardo\excel\PrevisoesPedidos(3,0,3).xlsx"
+arquivo_saida = r"C:\Users\izabe\Desktop\Projeto Bernardo\excel\PrevisoesPedidos(teste).xlsx"
 
 with pd.ExcelWriter(arquivo_saida, engine='openpyxl') as writer:
     for aba, resultados_regioes in resultados_abas.items():
